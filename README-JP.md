@@ -1,10 +1,17 @@
 [English](https://github.com/aromajoin/controller-http-api) / [日本語](README-JP.md)
 
 # アロマシューター制御用HTTP APIs
+
 [![Join the community on Spectrum](https://withspectrum.github.io/badge/badge.svg)](https://spectrum.chat/aromajoin-software/)
 
-アロマジョインのHTTP APIは「ASN2」から始まるアロマシューターに対して使えます。このAPIを使うにはWi-Fiネットワークが必要です。
+アロマジョインのHTTP APIを使うと、Wi-Fi経由でアロマシューターを制御できます。
 
+エンドポイントは2系統あります。
+
+- **`/asn/*` — 世代非依存（推奨）。** ファームウェア **2.2.0 以降**で利用可能です。アロマシューターの各世代で共通に動作し、すべてのレスポンスにデバイスの `serial`（シリアル番号）が含まれます。
+- **`/as2/*` — レガシー。** 従来のエンドポイントで、既存の連携との後方互換のために維持されています。引き続きご利用いただけます。
+
+このAPIを使うにはWi-Fi接続が必要です。
 
 ## I. Wi-Fi 接続設定
 
@@ -14,7 +21,7 @@
 
 iOSデバイスを持っていない方に別な方法です。
 
-アロマシューター立ち上げて、パソコンやスマホなどのWi-Fi設定画面からアロマシューターが作ったWi-Fiネットワークを選んで接続します。そのWi-FiネットワークのSSIDはアロマシューターのシリアル番号のままで、例えば「ASN2A5216」です。
+アロマシューター立ち上げて、パソコンやスマホなどのWi-Fi設定画面からアロマシューターが作ったWi-Fiネットワークを選んで接続します。そのWi-FiネットワークのSSIDはアロマシューターのシリアル番号のままで、例えば「ASN3A05216」です。
 
 - 接続するためのパスワード：aromajoin@1003
 
@@ -28,6 +35,8 @@ https://apps.apple.com/app/aroma-shooter/id1477144583
 
 アプリをインストールした後、アプリを立ち上げて、画面の左下にある「Settings」ボタンを押して、「Others」→「Setup AromaShooter's Wi-Fi」で画面上の案内通り進めます。「Aroma Shooter Wi-Fi Connection」という画面で接続したいWi-Fiネットワークを選んで、ユーザー名とパスワードなど入力して接続します。成功したというメッセージが出たら「Done」ボタンを押して設定メニューに戻ります。
 
+接続状態はデバイスのLEDでも一目で確認できます。[V. LEDステータス表示](#v-ledステータス表示) をご覧ください。
+
 ## II. APIs
 
 アロマシューターが接続しているWi-Fiネットワークと同じネットワークに接続すれば、パソコンやスマホ等からそのアロマシューターに対する制御コマンドを送れます。次の形のRESTリクエストを送って制御します。
@@ -40,42 +49,147 @@ https://apps.apple.com/app/aroma-shooter/id1477144583
 
 - IPアドレス: `http://192.168.1.10:1003` (こちらの形式は処理が速いので **お勧め**です。)
 
-- シリアル番号: `http://ASN2A00001.local:1003` (こちらの形式は直観的ですが、遅い方です。そして、Android装置なら使用できない場合があります。)
+- シリアル番号: `http://ASN3A00001.local:1003` (こちらの形式は直観的ですが、遅い方です。そして、Android装置なら使用できない場合があります。)
 
+> **CORS / ブラウザアプリ:** すべてのエンドポイントは `OPTIONS` プリフライトに応答し、CORSヘッダを返すため、ブラウザから `Content-Type: application/json` で直接呼び出せます。
 
-### API リスト
+## III. `/asn/*` エンドポイント（推奨、ファームウェア 2.2.0 以降）
 
+これらのエンドポイントは世代非依存で、常にデバイスの `serial` を返します。複数台を制御する場合でも、どの機体が応答したかがクライアント側で分かります。
 
-#### 1. ファームウェア情報取得
+> **`"received"` について:** shoot は `"done"` ではなく `"received"` を返します。HTTPは同期リクエスト/レスポンスですが、噴射はレスポンス送信後も続くため、デバイスはコマンドを _受理して開始した_ ことを通知します。レスポンスが返らない（HTTPエラーやタイムアウト）場合は、コマンドが受理され**なかった**ことを意味します。
 
-* *Path:* /as2/firmware
+### 1. 香り噴射
 
-* *Method:* GET
+- _Path:_ /asn/shoot
 
-* *Header:* “Content-Type: application/json”
+- _Method:_ POST
 
-* *レスポンス例:*
+- _Header:_ “Content-Type: application/json”
+
+- _リクエスト中身:_
+
+```javascript
+{
+    "chambers": [Number, ...],      // チャンバー（カートリッジ）番号。値レンジ: 1 ~ 6
+    "concentrations": [Number, ...],// チャンバーごとの香り濃度（パーセンテージ）。値レンジ: 0 ~ 100
+    "duration": Number,             // 全チャンバー共通の噴射時間（ミリ秒）。値レンジ: 0 ~ 10000
+    "internalBoosterIntensity": Number, // 必須。内部ブースターファンの強度（パーセンテージ）。値レンジ: 0 ~ 100。
+    "externalBoosterIntensity": Number  // 任意。外部ブースターファンの強度 0 ~ 100（0/省略 = オフ）。AS3のみ（AS2では解析されるが無視）。
+}
+```
+
+> **`internalBoosterIntensity` は必須です。** 内部ブースターファンが噴射した香りをデバイスの外へ押し出す役割を担うため、これを省略（または `0`）にすると、`chambers`/`concentrations` が正しくても香りは一切出ません。`externalBoosterIntensity` は任意です（AS3のみ）。
+
+共通の `"duration"` の代わりに、`"durations"`（`"chambers"` と同じ長さ・順序の配列）でチャンバーごとの時間を指定することもできます。
+
+```javascript
+{
+    "chambers": [1, 3, 5],
+    "concentrations": [100, 50, 25],
+    "durations": [1000, 2000, 3000],
+    "internalBoosterIntensity": 100
+}
+```
+
+_例えば:_
 
 ```json
 {
+    "chambers": [1, 3],
+    "concentrations": [75, 50],
+    "duration": 3000,
+    "internalBoosterIntensity": 100
+}
+```
+
+- _レスポンス例:_
+
+```json
+{
+    "serial": "ASN3A00001",
+    "status": "received"
+}
+```
+
+- _エラー（不正な中身）:_ HTTP `400 Bad Request`
+
+```json
+{
+    "status": "invalid"
+}
+```
+
+### 2. デバイス識別情報の取得
+
+- _Path:_ /asn/identity
+
+- _Method:_ GET
+
+- _Header:_ “Content-Type: application/json”
+
+- _レスポンス例:_（副作用なし — 発見やヘルスチェックに安全に使えます）
+
+```json
+{
+    "serial": "ASN3A00001"
+}
+```
+
+### 3. ファームウェアバージョンの取得
+
+- _Path:_ /asn/version
+
+- _Method:_ GET
+
+- _Header:_ “Content-Type: application/json”
+
+- _レスポンス例:_（バージョンはハードコードではなく、ファームウェアイメージ自体から取得されます）
+
+```json
+{
+    "serial": "ASN3A00001",
+    "firmware": "2.2.0"
+}
+```
+
+## IV. `/as2/*` エンドポイント（レガシー、後方互換）
+
+既存の連携のために引き続き利用可能です。ファームウェア 2.2.0 以降では、これらのレスポンスにも `serial` が含まれます。
+
+### 1. ファームウェア情報取得
+
+- _Path:_ /as2/firmware
+
+- _Method:_ GET
+
+- _Header:_ “Content-Type: application/json”
+
+- _レスポンス例:_
+
+```json
+{
+    "serial": "ASN3A00001",
     "current": "1.0.0",
     "latest": "1.0.1",
     "internet": "true"
 }
 ```
 
+> ファームウェア **1.x.x** では `"serial"` フィールドは含まれません。
 
-#### 2. 香り噴射
+### 2. 香り噴射
 
-* *Path:* /as2/diffuse
+- _Path:_ /as2/diffuse
 
-* *Method:* POST
+- _Method:_ POST
 
-* *Header:* “Content-Type: application/json”
+- _Header:_ “Content-Type: application/json”
 
-* *リクエスト中身:*
+- _リクエスト中身:_
 
 **ファームウェアバージョン 2.x.x以降**
+
 ```javascript
 {
     "channels": [Number, ...], // カートリッジ番号、値レンジ: 1 ~ 6。
@@ -84,7 +198,9 @@ https://apps.apple.com/app/aroma-shooter/id1477144583
     "booster": Boolean // 真（True）に設定したら、アロマシューターのブースタファン（無臭ファン）が有効になります。デフォルトは偽（False）です。
 }
 ```
-*例えば:*
+
+_例えば:_
+
 ```json
 {
     "channels": [1,3,5],
@@ -95,8 +211,11 @@ https://apps.apple.com/app/aroma-shooter/id1477144583
 ```
 
 **AromaShooter® 3への対応に関して**
-* 「ch8」（または、「ch7」）の追加により、外部のブースターファンの動作が可能です。
-*例えば:*
+
+- 「ch8」（または、「ch7」）の追加により、外部のブースターファンの動作が可能です。
+
+_例えば:_
+
 ```json
 {
     "channels": [1,3,5,8],
@@ -107,6 +226,7 @@ https://apps.apple.com/app/aroma-shooter/id1477144583
 ```
 
 **ファームウェアバージョン 1.x.x**
+
 ```javascript
 {
     "duration": Number, // ミリ秒単位の噴射時間、値レンジ：0 ~ 10000。
@@ -116,7 +236,8 @@ https://apps.apple.com/app/aroma-shooter/id1477144583
 }
 ```
 
-*例えば:*
+_例えば:_
+
 ```json
 {
     "duration": 3000,
@@ -126,53 +247,73 @@ https://apps.apple.com/app/aroma-shooter/id1477144583
 }
 ```
 
-*レスポンス例:*
+- _レスポンス例:_
 
 ```json
 {
+    "serial": "ASN3A00001",
     "status": "done"
 }
 ```
 
+> ファームウェア **1.x.x** ではレスポンスは `{"status": "done"}` です（`"serial"` なし）。
 
-#### 3. 噴射停止
+### 3. 噴射停止
 
-* *Path:* /as2/stop_all
+- _Path:_ /as2/stop_all
 
-* *Method:* POST
+- _Method:_ POST
 
-* *Header:* “Content-Type: application/json”
+- _Header:_ “Content-Type: application/json”
 
-* *Request body:* None
+- _リクエスト中身:_ なし
 
-* *レスポンス例:*
+- _レスポンス例:_
 
 **ファームウェアバージョン 2.x.x以降**
+
 ```json
 {
-    "serial":"ASN2A00001",
+    "serial":"ASN3A00001",
     "status":"done"
 }
 ```
 
 **ファームウェアバージョン 1.x.x**
+
 ```json
 {
     "status": "done"
 }
 ```
+
+## V. LEDステータス表示
+
+前面の2つのLEDが接続状態を示すため、コンソールなしで状態を判断できます。
+
+| 状態                   | LED     | パターン                             |
+| ---------------------- | ------- | ------------------------------------ |
+| Wi-Fi 接続完了         | 🟢 緑   | 3回点滅（0.5秒点灯 / 0.5秒消灯）     |
+| Bluetooth (BLE) 接続完了 | 🔵 青   | 3回点滅（0.5秒点灯 / 0.5秒消灯）     |
+| 切断 / 接続喪失        | 🔴 赤   | 2回点滅（短く、約0.15秒）            |
+
+赤は「切断 / エラー」状態のために予約されています。接続成功時は常に緑（Wi-Fi）または青（BLE）です。
+
+> **ファームウェア2.2.0での変更点。** この色の割り当ては2.2.0で見直されました。**Wi-Fi** 接続成功時は **緑** の点滅になりました（以前のファームウェアでは **赤** の点滅でした）。また、**赤の切断/接続喪失**インジケータは **新規** です。2.2.0より前のファームウェアではWi-Fi接続時の点滅が赤で、専用の切断インジケータはありませんでした。
 
 ## FAQs
 
 ### アロマシューターのWi-Fiホットスポットが見えませんでした。
 エネルギーを節約するためにアロマシューターのWi-Fiネットワークが有効になっていない場合が2つございます。
 * アロマシューターがWi-Fiネットワークに接続されている。
-* アロマシューターがUSBまたはBluetooth経由で制御されている。 そのため、アロマシューターのWi-Fiを設定するには、パソコンやスマートフォンで制御している場合は、電源を入れ直しておく必要があります。
+* アロマシューターがUSBまたはBluetooth経由で制御されている。 そのため、アロマシューターのWi-Fiを設定するには、パソコンやスマートフォンで制御している場合は、電源を入れ直しておく必要があります。
 
 ### ルーターのWiFiと正常に接続されていることを確認する方法はありますでしょうか？
 IPスキャンソフトウェアを使用して、アロマシューターがそこに表示されているかどうかを確認できます。
 Windowsの場合、以下の記事でIPアドレスをスキャンする方法の詳細がございます。
 https://nelog.jp/advanced-ip-scanner
+
+接続状態はデバイスのLEDからも読み取れます。[V. LEDステータス表示](#v-ledステータス表示) をご覧ください。
 
 ### 電源を切った場合でもWi-Fi設定は保存されますか？
 はい。 電源が落ちてもWiFi設定は維持されます。 デバイスを別のネットワークに接続した場合にのみ変更されます。
