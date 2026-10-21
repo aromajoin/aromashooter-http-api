@@ -200,7 +200,7 @@ These remain available for existing integrations. On firmware 2.2.0 and later th
     "channels": [Number, ...], // The cartridge number. Range: 1 ~ 6
     "intensities": [Number, ...], // The cartridge intensity as a percentage. Range: 0 ~ 100
     "durations": [Number, ...], // Diffusion time in milliseconds. Range: 0 ~ 10000
-    "booster": Boolean // Set to true to activate the Aroma Shooter's booster fan. Default value is false.
+    "booster": Boolean // Set to true to activate the Aroma Shooter's booster. Default value is false.
 }
 ```
 
@@ -222,7 +222,7 @@ _Request sample:_
     "duration": Number, // Diffusion time in milliseconds. Range: 0 ~ 10000
     "channel": Number, // The cartridge number. Range: 1 ~ 6
     "intensity": Number, // The cartridge intensity as a percentage. Range: 0 ~ 100
-    "booster": Boolean // Set to true to activate the Aroma Shooter's booster fan. Default value is false.
+    "booster": Boolean // Set to true to activate the Aroma Shooter's booster. Default value is false.
 }
 ```
 
