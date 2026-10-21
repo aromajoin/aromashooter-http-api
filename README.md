@@ -77,12 +77,14 @@ These endpoints are generation-neutral and always return the device `serial`, so
     "chambers": [Number, ...],      // Cartridge (chamber) number. Range: 1 ~ 6
     "concentrations": [Number, ...],// Scent concentration per chamber, as a percentage. Range: 0 ~ 100
     "duration": Number,             // Common diffusion time for all chambers, in ms. Range: 0 ~ 10000
-    "internalBoosterIntensity": Number, // Required. Internal booster fan intensity, as a percentage. Range: 0 ~ 100.
-    "externalBoosterIntensity": Number  // Optional. External booster fan intensity 0 ~ 100 (0/omitted = off). AS3 only (parsed but ignored on AS2).
+    "innerBoosterIntensity": Number,    // Required. Inner booster intensity, as a percentage. Range: 0 ~ 100.
+    "outerBoosterIntensity": Number     // Optional. Outer booster intensity 0 ~ 100 (0/omitted = off). AS3 only (parsed but ignored on AS2).
 }
 ```
 
-> **`internalBoosterIntensity` is required.** The internal booster fan is what pushes the diffused scent out of the device — omit it (or set it to `0`) and no scent is emitted, even with valid `chambers`/`concentrations`. `externalBoosterIntensity` is optional (AS3 only).
+> **`innerBoosterIntensity` is required.** The inner booster is what pushes the scent out of the device — omit it (or set it to `0`) and no scent is emitted, even with valid `chambers`/`concentrations`. `outerBoosterIntensity` is optional (AS3 only).
+
+> Firmware **2.2.2 and later** reads these keys. The former keys `internalBoosterIntensity` / `externalBoosterIntensity` (firmware 2.2.0–2.2.1) are still accepted for compatibility; when both are present the `inner`/`outer` key wins. New integrations should use `inner`/`outer` only.
 
 Instead of a common `"duration"`, you may give per-chamber times with `"durations"` (array, same length/order as `"chambers"`):
 
@@ -91,7 +93,7 @@ Instead of a common `"duration"`, you may give per-chamber times with `"duration
     "chambers": [1, 3, 5],
     "concentrations": [100, 50, 25],
     "durations": [1000, 2000, 3000],
-    "internalBoosterIntensity": 100
+    "innerBoosterIntensity": 100
 }
 ```
 
@@ -102,7 +104,7 @@ _Request sample:_
     "chambers": [1, 3],
     "concentrations": [75, 50],
     "duration": 3000,
-    "internalBoosterIntensity": 100
+    "innerBoosterIntensity": 100
 }
 ```
 

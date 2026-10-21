@@ -74,12 +74,14 @@ https://apps.apple.com/app/aroma-shooter/id1477144583
     "chambers": [Number, ...],      // チャンバー（カートリッジ）番号。値レンジ: 1 ~ 6
     "concentrations": [Number, ...],// チャンバーごとの香り濃度（パーセンテージ）。値レンジ: 0 ~ 100
     "duration": Number,             // 全チャンバー共通の噴射時間（ミリ秒）。値レンジ: 0 ~ 10000
-    "internalBoosterIntensity": Number, // 必須。内部ブースターファンの強度（パーセンテージ）。値レンジ: 0 ~ 100。
-    "externalBoosterIntensity": Number  // 任意。外部ブースターファンの強度 0 ~ 100（0/省略 = オフ）。AS3のみ（AS2では解析されるが無視）。
+    "innerBoosterIntensity": Number,    // 必須。inner booster の強度（パーセンテージ）。値レンジ: 0 ~ 100。
+    "outerBoosterIntensity": Number     // 任意。outer booster の強度 0 ~ 100（0/省略 = オフ）。AS3のみ（AS2では解析されるが無視）。
 }
 ```
 
-> **`internalBoosterIntensity` は必須です。** 内部ブースターファンが噴射した香りをデバイスの外へ押し出す役割を担うため、これを省略（または `0`）にすると、`chambers`/`concentrations` が正しくても香りは一切出ません。`externalBoosterIntensity` は任意です（AS3のみ）。
+> **`innerBoosterIntensity` は必須です。** inner booster が香りをデバイスの外へ押し出す役割を担うため、これを省略（または `0`）にすると、`chambers`/`concentrations` が正しくても香りは一切出ません。`outerBoosterIntensity` は任意です（AS3のみ）。
+
+> これらのキーはファームウェア **2.2.2 以降** が読み取ります。旧キー `internalBoosterIntensity` / `externalBoosterIntensity`（ファームウェア 2.2.0〜2.2.1）も互換性のため引き続き受け付けます。両方が含まれる場合は `inner`/`outer` キーが優先されます。新規の連携では `inner`/`outer` のみを使用してください。
 
 共通の `"duration"` の代わりに、`"durations"`（`"chambers"` と同じ長さ・順序の配列）でチャンバーごとの時間を指定することもできます。
 
@@ -88,7 +90,7 @@ https://apps.apple.com/app/aroma-shooter/id1477144583
     "chambers": [1, 3, 5],
     "concentrations": [100, 50, 25],
     "durations": [1000, 2000, 3000],
-    "internalBoosterIntensity": 100
+    "innerBoosterIntensity": 100
 }
 ```
 
@@ -99,7 +101,7 @@ _例えば:_
     "chambers": [1, 3],
     "concentrations": [75, 50],
     "duration": 3000,
-    "internalBoosterIntensity": 100
+    "innerBoosterIntensity": 100
 }
 ```
 
@@ -212,7 +214,7 @@ _例えば:_
 
 **AromaShooter® 3への対応に関して**
 
-- 「ch8」（または、「ch7」）の追加により、外部のブースターファンの動作が可能です。
+- 「ch8」（または、「ch7」）の追加により、outer booster（ファン）の動作が可能です。
 
 _例えば:_
 
