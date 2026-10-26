@@ -22,7 +22,7 @@ There are two methods of connecting an Aroma Shooter to a Wi-Fi network: via Aro
 
 Here's an alternative method for people without iOS devices.
 
-After plugging in your Aroma Shooter to a power source, choose it from the available Wi-Fi networks on your computer or mobile device. It will be identifiable by its serial number (For example: "ASN3A05216").
+After plugging in your Aroma Shooter to a power source, choose it from the available Wi-Fi networks on your computer or mobile device. It will be identifiable by its serial number (For example: "ASN3A00001").
 
 - Password: aromajoin@1003
 
